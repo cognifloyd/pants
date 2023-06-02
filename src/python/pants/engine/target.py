@@ -23,6 +23,7 @@ from typing import (
     Callable,
     ClassVar,
     Dict,
+    Generator,
     Generic,
     Iterable,
     Iterator,
@@ -453,6 +454,17 @@ class Target:
 
     @final
     @classmethod
+    def _find_all_registered_field_subclasses(
+        cls, requested_field: Type[_F], *, registered_fields: Iterable[Type[Field]]
+    ) -> Generator[Type[_F], None, None]:
+        return (
+            registered_field
+            for registered_field in registered_fields
+            if issubclass(registered_field, requested_field)
+        )
+
+    @final
+    @classmethod
     def _find_registered_field_subclass(
         cls, requested_field: Type[_F], *, registered_fields: Iterable[Type[Field]]
     ) -> Optional[Type[_F]]:
@@ -464,10 +476,8 @@ class Target:
         `tgt.get(CustomTags)`.
         """
         subclass = next(
-            (
-                registered_field
-                for registered_field in registered_fields
-                if issubclass(registered_field, requested_field)
+            cls._find_all_registered_field_subclasses(
+                requested_field, registered_fields=registered_fields
             ),
             None,
         )
@@ -524,11 +534,37 @@ class Target:
         first call `tgt.has_field()` or `tgt.has_fields()` to ensure that the field is registered,
         or, alternatively, use indexing (e.g. `tgt[Compatibility]`) to raise a KeyError when the
         field is not registered.
+
+        Consider using `tgt.get_all(Field)` instead of this when there are multiple registered fields
+        that subclass the requested field. Using `tgt.get(Field)` will return
+        whichever field is either the exact Field class, or the first of the subclassed
+        fields sorted by their alias.
         """
         result = self._maybe_get(field)
         if result is not None:
             return result
         return field(default_raw_value, self.address)
+
+    @final
+    def get_all(self, field: Type[_F]) -> tuple[_F, ...]:
+        """Get all requested `Field` instances belonging to this target.
+
+        This will return a tuple of instances of the requested field type, e.g. two instances of
+        `Dependencies` (which rules to provide special-case handling of some dependencies).
+
+        If the `Field` is not registered on this `Target` type, this will return an empty tuple.
+
+        When there are multiple registered fields that subclass the requested field,
+        using `tgt.get(Field)` and `tgt[Field]` are not safe because they will return
+        whichever field is either the exact Field class, or the first of the subclassed
+        fields sorted by their alias.
+        """
+        return tuple(
+            cast(_F, self.field_values[field_subclass])
+            for field_subclass in self._find_all_registered_field_subclasses(
+                field, registered_fields=self.field_values.keys()
+            )
+        )
 
     @final
     @classmethod
@@ -2499,8 +2535,7 @@ def should_resolve_deps_default_predicate(tgt: Target, fld: Field) -> bool:
 def should_resolve_all_deps_predicate(tgt: Target, fld: Field) -> bool:
     """A predicate to use when a request needs all deps.
 
-    This includes deps from fields like SpecialCasedDependencies which are
-    ignored in most cases.
+    This includes deps from fields like SpecialCasedDependencies which are ignored in most cases.
     """
     return True
 

@@ -78,6 +78,21 @@ class FortranExtensions(Field):
         return tuple(value_or_default)
 
 
+class FortranDeps(Field):
+    alias = "deps"
+    value: Tuple[str, ...]
+    default = ()
+
+    @classmethod
+    def compute_value(cls, raw_value: Optional[Iterable[str]], address: Address) -> Tuple[str, ...]:
+        value_or_default = super().compute_value(raw_value, address)
+        return tuple(value_or_default)
+
+
+class FortranSpecialCasedDeps(FortranDeps):
+    alias = "special_cased_deps"
+
+
 class FortranVersion(StringField):
     alias = "version"
 
@@ -89,7 +104,7 @@ class UnrelatedField(BoolField):
 
 class FortranTarget(Target):
     alias = "fortran"
-    core_fields = (FortranExtensions, FortranVersion)
+    core_fields = (FortranExtensions, FortranVersion, FortranDeps, FortranSpecialCasedDeps)
 
     def validate(self) -> None:
         if self[FortranVersion].value == "bad":
@@ -201,6 +216,32 @@ def test_get_field() -> None:
     ).value == (not UnrelatedField.default)
 
 
+def test_get_all_field() -> None:
+    deps = (":FortranDep1",)
+    special_deps = (":FortranDep2",)
+    extensions = ("FortranExt1",)
+
+    tgt = FortranTarget(
+        {
+            FortranExtensions.alias: extensions,
+            FortranDeps.alias: deps,
+            FortranSpecialCasedDeps.alias: special_deps,
+        },
+        Address("", target_name="lib")
+    )
+    assert len(tgt.get_all(FortranExtensions)) == 1
+    assert tgt.get_all(FortranExtensions)[0].value == extensions
+    assert len(tgt.get_all(FortranDeps)) == 2
+    assert tgt.get_all(FortranDeps)[0].value == deps
+    assert tgt.get_all(FortranDeps)[1].value == special_deps
+
+    default_field_tgt = FortranTarget({}, Address("", target_name="default"))
+    assert len(default_field_tgt.get_all(FortranExtensions)) == 1
+    assert default_field_tgt.get_all(FortranExtensions)[0].value == FortranExtensions.default
+
+    assert default_field_tgt.get_all(UnrelatedField) == ()
+
+
 def test_field_hydration_is_eager() -> None:
     with pytest.raises(InvalidTargetException) as exc:
         FortranTarget(
@@ -215,10 +256,12 @@ def test_has_fields() -> None:
     empty_union_membership = UnionMembership({})
     tgt = FortranTarget({}, Address("", target_name="lib"))
 
-    assert tgt.field_types == {FortranExtensions, FortranVersion}
+    assert tgt.field_types == {FortranExtensions, FortranVersion, FortranDeps, FortranSpecialCasedDeps}
     assert set(FortranTarget.class_field_types(union_membership=empty_union_membership)) == {
         FortranExtensions,
         FortranVersion,
+        FortranDeps,
+        FortranSpecialCasedDeps,
     }
 
     assert tgt.has_fields([]) is True
@@ -268,13 +311,15 @@ def test_add_custom_fields() -> None:
         tgt_values, Address("", target_name="lib"), union_membership=union_membership
     )
 
-    assert tgt.field_types == {FortranExtensions, FortranVersion, CustomField}
-    assert tgt.core_fields == (FortranExtensions, FortranVersion)
+    assert tgt.field_types == {FortranExtensions, FortranVersion, FortranDeps, FortranSpecialCasedDeps, CustomField}
+    assert tgt.core_fields == (FortranExtensions, FortranVersion, FortranDeps, FortranSpecialCasedDeps)
     assert tgt.has_field(CustomField) is True
 
     assert set(FortranTarget.class_field_types(union_membership=union_membership)) == {
         FortranExtensions,
         FortranVersion,
+        FortranDeps,
+        FortranSpecialCasedDeps,
         CustomField,
     }
     assert FortranTarget.class_has_field(CustomField, union_membership=union_membership) is True
