@@ -227,7 +227,7 @@ def test_get_all_field() -> None:
             FortranDeps.alias: deps,
             FortranSpecialCasedDeps.alias: special_deps,
         },
-        Address("", target_name="lib")
+        Address("", target_name="lib"),
     )
     assert len(tgt.get_all(FortranExtensions)) == 1
     assert tgt.get_all(FortranExtensions)[0].value == extensions
@@ -256,7 +256,12 @@ def test_has_fields() -> None:
     empty_union_membership = UnionMembership({})
     tgt = FortranTarget({}, Address("", target_name="lib"))
 
-    assert tgt.field_types == {FortranExtensions, FortranVersion, FortranDeps, FortranSpecialCasedDeps}
+    assert tgt.field_types == {
+        FortranExtensions,
+        FortranVersion,
+        FortranDeps,
+        FortranSpecialCasedDeps,
+    }
     assert set(FortranTarget.class_field_types(union_membership=empty_union_membership)) == {
         FortranExtensions,
         FortranVersion,
@@ -311,8 +316,19 @@ def test_add_custom_fields() -> None:
         tgt_values, Address("", target_name="lib"), union_membership=union_membership
     )
 
-    assert tgt.field_types == {FortranExtensions, FortranVersion, FortranDeps, FortranSpecialCasedDeps, CustomField}
-    assert tgt.core_fields == (FortranExtensions, FortranVersion, FortranDeps, FortranSpecialCasedDeps)
+    assert tgt.field_types == {
+        FortranExtensions,
+        FortranVersion,
+        FortranDeps,
+        FortranSpecialCasedDeps,
+        CustomField,
+    }
+    assert tgt.core_fields == (
+        FortranExtensions,
+        FortranVersion,
+        FortranDeps,
+        FortranSpecialCasedDeps,
+    )
     assert tgt.has_field(CustomField) is True
 
     assert set(FortranTarget.class_field_types(union_membership=union_membership)) == {
