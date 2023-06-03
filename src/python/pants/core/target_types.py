@@ -728,7 +728,7 @@ class TargetGeneratorSourcesHelperTarget(Target):
 # -----------------------------------------------------------------------------------------------
 
 
-class ArchivePackagesField(SpecialCasedDependencies):
+class ArchivePackagesField(SpecialCasedDependencies):  # TODO: subclass Dependencies
     alias = "packages"
     help = help_text(
         f"""
@@ -742,7 +742,7 @@ class ArchivePackagesField(SpecialCasedDependencies):
     )
 
 
-class ArchiveFilesField(SpecialCasedDependencies):
+class ArchiveFilesField(SpecialCasedDependencies):  # TODO: subclass Dependencies
     alias = "files"
     help = help_text(
         """
@@ -799,6 +799,7 @@ async def package_archive_target(field_set: ArchiveFieldSet) -> BuiltPackage:
     #  necessary because we only hydrate sources for `FileSourcesField`, which is only for the
     #  `file` target.  That's really subtle!
     package_targets, file_targets = await MultiGet(
+        # TODO: these needs to use DependenciesRequest instead (once using Dependencies instead of SpecialCased)
         Get(Targets, UnparsedAddressInputs, field_set.packages.to_unparsed_address_inputs()),
         Get(Targets, UnparsedAddressInputs, field_set.files.to_unparsed_address_inputs()),
     )

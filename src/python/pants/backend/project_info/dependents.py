@@ -33,12 +33,13 @@ async def map_addresses_to_dependents(all_targets: AllUnexpandedTargets) -> Addr
         Get(
             Addresses,
             DependenciesRequest(
-                tgt.get(Dependencies),
+                deps_field,
                 should_resolve_deps_predicate=should_resolve_all_deps_predicate,
                 include_special_cased_deps=True,
             ),
         )
         for tgt in all_targets
+        for deps_field in tgt.get_all(Dependencies)
     )
 
     address_to_dependents = defaultdict(set)

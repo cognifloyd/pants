@@ -31,6 +31,7 @@ def dedicated_target_fields():
                     raise ValueError(
                         f"{cls.__name__} should have a dedicated field type for the source(s) field."
                     )
+                # TODO: How does this need to change when a target can have multiple dependencies fields?
                 if (
                     issubclass(field_cls, Dependencies)
                     and field_cls.__module__ is Dependencies.__module__

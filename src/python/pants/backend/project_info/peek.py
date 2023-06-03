@@ -181,12 +181,13 @@ async def get_target_data(
         Get(
             Targets,
             DependenciesRequest(
-                tgt.get(Dependencies),
+                deps_field,
                 should_resolve_deps_predicate=should_resolve_all_deps_predicate,
                 include_special_cased_deps=True,
             ),
         )
         for tgt in sorted_targets
+        for deps_field in tgt.get_all(Dependencies)
     )
     hydrated_sources_per_target = await MultiGet(
         Get(HydratedSources, HydrateSourcesRequest(tgt[SourcesField]))

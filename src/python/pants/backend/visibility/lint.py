@@ -26,6 +26,7 @@ from pants.util.logging import LogLevel
 @dataclass(frozen=True)
 class VisibilityFieldSet(FieldSet):
     required_fields = (Dependencies,)
+    # TODO: This is problematic if there are multiple Dependencies fields on a target.
     dependencies: Dependencies
 
 
@@ -43,12 +44,14 @@ async def check_visibility_rule_violations(
         Get(
             Addresses,
             DependenciesRequest(
+                # deps_field,
                 field_set.dependencies,
                 should_resolve_deps_predicate=should_resolve_all_deps_predicate,
                 include_special_cased_deps=True,
             ),
         )
         for field_set in request.elements
+        # for deps_field in tgt.get_all(Dependencies)
     )
     all_dependencies_rule_action = await MultiGet(
         Get(

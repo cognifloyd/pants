@@ -62,12 +62,13 @@ async def dependencies(
             Get(
                 Targets,
                 DependenciesRequest(
-                    tgt.get(DependenciesField),
+                    deps_field,
                     should_resolve_deps_predicate=should_resolve_all_deps_predicate,
                     include_special_cased_deps=True,
                 ),
             )
             for tgt in target_roots
+            for deps_field in tgt.get_all(DependenciesField)
         )
         targets = Targets(itertools.chain.from_iterable(dependencies_per_target_root))
 

@@ -127,12 +127,13 @@ async def paths(console: Console, paths_subsystem: PathsSubsystem) -> PathsGoal:
         Get(
             Targets,
             DependenciesRequest(
-                tgt.get(Dependencies),
+                deps_field,
                 should_resolve_deps_predicate=should_resolve_all_deps_predicate,
                 include_special_cased_deps=True,
             ),
         )
         for tgt in transitive_targets.closure
+        for deps_field in tgt.get_all(Dependencies)
     )
 
     transitive_targets_closure_addresses = (t.address for t in transitive_targets.closure)
